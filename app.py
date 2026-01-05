@@ -133,85 +133,175 @@ export default {{
 
 
 def generate_netlify_html(worker_url, tiktok_handle, creator_name):
-    """Generate Netlify landing page HTML"""
+    """Generate Netlify landing page HTML - only redirects on mobile + real browser"""
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redirecting...</title>
+    <title>Open in Browser</title>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #0f0f1a 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             color: white;
-        }}
-        .container {{ text-align: center; padding: 40px 20px; max-width: 400px; }}
-        .spinner {{
-            width: 50px; height: 50px;
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top-color: #ff6b9d;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }}
-        @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
-        h1 {{ font-size: 24px; margin-bottom: 10px; }}
-        p {{ color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 20px; }}
-        .manual-link {{
-            display: inline-block;
-            background: #ff6b9d;
-            color: white;
-            text-decoration: none;
-            padding: 15px 40px;
-            border-radius: 30px;
-            font-weight: 600;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }}
-        .manual-link:hover {{
-            transform: scale(1.05);
-            box-shadow: 0 10px 30px rgba(255,107,157,0.4);
-        }}
-        .browser-warning {{
-            display: none;
-            background: rgba(255,107,157,0.2);
-            border: 1px solid #ff6b9d;
-            border-radius: 10px;
             padding: 20px;
-            margin-bottom: 20px;
         }}
-        .browser-warning h2 {{ font-size: 18px; margin-bottom: 10px; }}
-        .browser-warning p {{ font-size: 13px; margin-bottom: 0; }}
+        .container {{
+            text-align: center;
+            max-width: 360px;
+            width: 100%;
+        }}
+        .gif-card {{
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 0 40px rgba(0, 255, 136, 0.1);
+        }}
+        .gif-container {{
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }}
+        .gif-container img {{
+            width: 100%;
+            height: auto;
+            display: block;
+        }}
+        .instructions {{
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }}
+        .step {{
+            display: flex;
+            align-items: center;
+            text-align: left;
+            margin-bottom: 16px;
+        }}
+        .step:last-child {{ margin-bottom: 0; }}
+        .step-number {{
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: #0f0f1a;
+            margin-right: 14px;
+            flex-shrink: 0;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+        }}
+        .step-text {{
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.4;
+        }}
+        .step-text strong {{
+            color: #00ff88;
+        }}
+        .cta-button {{
+            display: block;
+            width: 100%;
+            padding: 18px 32px;
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            color: #0f0f1a;
+            text-decoration: none;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 17px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
+        }}
+        .cta-button:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 255, 136, 0.5);
+        }}
+        .cta-button:active {{
+            transform: translateY(0);
+        }}
+        .footer-text {{
+            margin-top: 20px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+        }}
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="browser-warning" id="browserWarning">
-            <h2>Open in Browser</h2>
-            <p>Tap the menu and select "Open in Browser"</p>
+        <div class="gif-card">
+            <div class="gif-container">
+                <img src="https://i.imgur.com/qJyqv6V.gif" alt="How to open in browser">
+            </div>
         </div>
-        <div class="spinner" id="spinner"></div>
-        <h1>Redirecting...</h1>
-        <p>Please wait</p>
-        <a href="#" class="manual-link" id="manualLink">Tap Here</a>
+
+        <div class="instructions">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-text">Tap the <strong>three dots</strong> (...) in the top right</div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-text">Select <strong>"Open in Browser"</strong></div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-text">Then tap the button below</div>
+            </div>
+        </div>
+
+        <a href="{worker_url}?acc={tiktok_handle}" class="cta-button" id="ctaButton">
+            Continue
+        </a>
+
+        <p class="footer-text">Works best in Safari or Chrome</p>
     </div>
+
     <script>
-        const targetUrl = "{worker_url}?acc={tiktok_handle}&model={creator_name}";
-        document.getElementById("manualLink").href = targetUrl;
-        function isInAppBrowser() {{
-            return /FBAN|FBAV|Instagram|TikTok|BytedanceWebview|musical_ly/i.test(navigator.userAgent);
+        function isLikelyAppBrowser(ua) {{
+            const keywords = [
+                "instagram", "fbav", "fban", "facebook", "tiktok", "musically",
+                "inapp", "wv", "webview", "line", "snapchat", "pinterest", "linkedin"
+            ];
+            return keywords.some(kw => ua.toLowerCase().includes(kw));
         }}
-        if (isInAppBrowser()) {{
-            document.getElementById("browserWarning").style.display = "block";
-            document.getElementById("spinner").style.display = "none";
-        }} else {{
-            setTimeout(function() {{ window.location.href = targetUrl; }}, 500);
+
+        function isLikelyBot(ua) {{
+            const botKeywords = [
+                "bot", "crawl", "preview", "spider", "dalvik", "discord", "telegram",
+                "curl", "wget", "python", "slack", "embed", "facebookexternalhit"
+            ];
+            return botKeywords.some(kw => ua.toLowerCase().includes(kw));
         }}
+
+        function checkBrowser() {{
+            const ua = navigator.userAgent || navigator.vendor || window.opera;
+            const isApp = isLikelyAppBrowser(ua);
+            const isBot = isLikelyBot(ua);
+            const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
+            const isBrowserLike = /chrome|safari|firefox|samsungbrowser|edg/i.test(ua);
+
+            // Only redirect on: mobile + real browser (not in-app, not bot)
+            const isRealBrowser = isMobile && isBrowserLike && !isApp && !isBot;
+
+            if (isRealBrowser) {{
+                window.location.href = "{worker_url}?acc={tiktok_handle}";
+            }}
+        }}
+
+        window.onload = checkBrowser;
     </script>
 </body>
 </html>'''
