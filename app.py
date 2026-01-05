@@ -7,6 +7,7 @@ Deploys Netlify landing pages and Cloudflare Workers for click tracking
 from flask import Flask, Response, request, jsonify
 import requests as http_requests
 import hashlib
+import base64
 import os
 
 app = Flask(__name__)
@@ -18,18 +19,19 @@ NETLIFY_API_TOKEN = os.environ.get("NETLIFY_API_TOKEN", "")
 SUPABASE_URL = "https://utzkvosladgdsbpujozu.supabase.co"
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 
-# Active creators with their OF URLs
+# Active creators with their OF URLs and background images
+# background: URL to default background image (None = needs upload)
 CREATORS_CONFIG = {
-    "miriam": {"of_us": "https://onlyfans.com/milosmiriam", "of_de": "https://onlyfans.com/miriamxde", "has_dach": True, "worker": "miri2"},
-    "aurelia": {"of_us": "https://onlyfans.com/aurelialuv", "of_de": "https://onlyfans.com/aureliaxde", "has_dach": True},
-    "naomi": {"of_us": "https://onlyfans.com/naomidoee", "of_de": None, "has_dach": False},
-    "mara": {"of_us": "https://onlyfans.com/maraxluv", "of_de": None, "has_dach": False},
-    "megan": {"of_us": "https://onlyfans.com/megluuvvv", "of_de": None, "has_dach": False},
-    "selena": {"of_us": "https://onlyfans.com/selenawrld", "of_de": None, "has_dach": False},
-    "sofia": {"of_us": "https://onlyfans.com/sofiasynn", "of_de": None, "has_dach": False},
-    "nalani": {"of_us": "https://onlyfans.com/nalaniluv", "of_de": None, "has_dach": False},
-    "suki": {"of_us": "https://onlyfans.com/sukixdarling", "of_de": None, "has_dach": False},
-    "mira": {"of_us": "https://onlyfans.com/miraswrld", "of_de": None, "has_dach": False},
+    "miriam": {"of_us": "https://onlyfans.com/milosmiriam", "of_de": "https://onlyfans.com/miriamxde", "has_dach": True, "worker": "miri2", "background": "https://i.imgur.com/miriam_bg.jpg"},
+    "aurelia": {"of_us": "https://onlyfans.com/aurelialuv", "of_de": "https://onlyfans.com/aureliaxde", "has_dach": True, "background": None},
+    "naomi": {"of_us": "https://onlyfans.com/naomidoee", "of_de": None, "has_dach": False, "background": None},
+    "mara": {"of_us": "https://onlyfans.com/maraxluv", "of_de": None, "has_dach": False, "background": None},
+    "megan": {"of_us": "https://onlyfans.com/megluuvvv", "of_de": None, "has_dach": False, "background": None},
+    "selena": {"of_us": "https://onlyfans.com/selenawrld", "of_de": None, "has_dach": False, "background": None},
+    "sofia": {"of_us": "https://onlyfans.com/sofiasynn", "of_de": None, "has_dach": False, "background": None},
+    "nalani": {"of_us": "https://onlyfans.com/nalaniluv", "of_de": None, "has_dach": False, "background": None},
+    "suki": {"of_us": "https://onlyfans.com/sukixdarling", "of_de": None, "has_dach": False, "background": None},
+    "mira": {"of_us": "https://onlyfans.com/miraswrld", "of_de": None, "has_dach": False, "background": None},
 }
 
 
@@ -132,7 +134,7 @@ export default {{
 }};'''
 
 
-def generate_netlify_html(worker_url, tiktok_handle, background_url, gif_url="https://s6.gifyu.com/images/bz27i.gif"):
+def generate_netlify_html(worker_url, tiktok_handle, background_url="background.jpg", gif_url="https://s6.gifyu.com/images/bz27i.gif"):
     """Generate Netlify landing page HTML - Miriam-style design with floating labels"""
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -184,7 +186,11 @@ def generate_netlify_html(worker_url, tiktok_handle, background_url, gif_url="ht
 @app.route('/')
 def index():
     """Render the Link Setup admin panel"""
-    creators_options = ''.join([f'<option value="{name}">{name.title()}</option>' for name in sorted(CREATORS_CONFIG.keys())])
+    creators_options = ''.join([f'<option value="{name}" data-has-bg="{1 if CREATORS_CONFIG[name].get("background") else 0}">{name.title()}</option>' for name in sorted(CREATORS_CONFIG.keys())])
+
+    # Pass creator config to JavaScript
+    import json
+    creators_json = json.dumps({k: {"background": v.get("background")} for k, v in CREATORS_CONFIG.items()})
 
     return f'''<!DOCTYPE html>
 <html lang="de">
@@ -287,6 +293,40 @@ def index():
             color: rgba(255,255,255,0.8);
             margin-bottom: 16px;
         }}
+        .radio-group {{ margin: 12px 0; }}
+        .radio-option {{
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }}
+        .radio-option:hover {{ background: rgba(255,255,255,0.08); }}
+        .radio-option.selected {{ border-color: #00ff66; background: rgba(0,255,102,0.1); }}
+        .radio-option input {{ margin-right: 10px; accent-color: #00ff66; }}
+        .file-input-wrapper {{
+            position: relative;
+            margin-top: 12px;
+            display: none;
+        }}
+        .file-input-wrapper.visible {{ display: block; }}
+        .file-input-label {{
+            display: block;
+            padding: 40px 20px;
+            border: 2px dashed rgba(255,255,255,0.3);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }}
+        .file-input-label:hover {{ border-color: #00ff66; background: rgba(0,255,102,0.05); }}
+        .file-input-label.has-file {{ border-color: #00ff66; background: rgba(0,255,102,0.1); }}
+        .file-input-wrapper input[type="file"] {{ display: none; }}
+        .preview-img {{ max-width: 100%; max-height: 150px; margin-top: 10px; border-radius: 8px; }}
     </style>
 </head>
 <body>
@@ -295,23 +335,22 @@ def index():
         <p class="subtitle">TikTok Account mit Click-Tracking verbinden</p>
 
         <div class="tabs">
-            <div class="tab active" onclick="switchTab('existing')">Bestehender Creator</div>
-            <div class="tab" onclick="switchTab('new')">Neuer Creator</div>
+            <div class="tab active" onclick="switchTab('existing')">+ TikTok Account</div>
+            <div class="tab" onclick="switchTab('new')">+ Neuer Creator</div>
         </div>
 
-        <!-- TAB: Existing Creator -->
+        <!-- TAB: TikTok Account hinzufugen -->
         <div id="tab-existing" class="tab-content active">
             <div class="card">
                 <h2>Neuen TikTok Account hinzufugen</h2>
 
                 <div class="info-box">
-                    Erstellt eine Netlify Landing Page fur den TikTok Account.<br>
-                    Der Cloudflare Worker fur diesen Creator existiert bereits.
+                    Erstellt eine Netlify Landing Page fur den TikTok Account.
                 </div>
 
                 <div class="form-group">
-                    <label>Creator auswahlen</label>
-                    <select id="creator-select">
+                    <label>Creator</label>
+                    <select id="creator-select" onchange="onCreatorChange()">
                         <option value="">-- Wahle Creator --</option>
                         {creators_options}
                     </select>
@@ -319,15 +358,32 @@ def index():
 
                 <div class="form-group">
                     <label>TikTok Handle (ohne @)</label>
-                    <input type="text" id="tiktok-handle" placeholder="z.B. glowingmiriam">
+                    <input type="text" id="tiktok-handle" placeholder="z.B. sukiiyami">
                 </div>
 
                 <div class="form-group">
-                    <label>Background Image URL</label>
-                    <input type="text" id="background-url" placeholder="https://i.imgur.com/...">
+                    <label>Hintergrund-Bild</label>
+                    <div class="radio-group">
+                        <label class="radio-option" id="radio-existing" style="display:none;">
+                            <input type="radio" name="bg-choice" value="existing" onchange="onBgChoiceChange()">
+                            <span>Standard-Bild verwenden</span>
+                        </label>
+                        <label class="radio-option selected">
+                            <input type="radio" name="bg-choice" value="upload" checked onchange="onBgChoiceChange()">
+                            <span>Neues Bild hochladen</span>
+                        </label>
+                    </div>
+
+                    <div class="file-input-wrapper visible" id="file-wrapper">
+                        <label class="file-input-label" id="file-label">
+                            <span id="file-text">Bild hierher ziehen oder klicken</span>
+                            <input type="file" id="bg-file" accept="image/*" onchange="onFileSelect(event)">
+                            <img id="preview" class="preview-img" style="display:none;">
+                        </label>
+                    </div>
                 </div>
 
-                <button class="btn btn-primary" onclick="deployNetlify()">
+                <button class="btn btn-primary" onclick="deployNetlify()" id="deploy-btn">
                     Deploy Netlify Page
                 </button>
 
@@ -370,6 +426,9 @@ def index():
     </div>
 
     <script>
+        const creatorsConfig = {creators_json};
+        let selectedFile = null;
+
         function switchTab(tab) {{
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -377,16 +436,78 @@ def index():
             document.getElementById('tab-' + tab).classList.add('active');
         }}
 
+        function onCreatorChange() {{
+            const creator = document.getElementById('creator-select').value;
+            const radioExisting = document.getElementById('radio-existing');
+
+            if (creator && creatorsConfig[creator] && creatorsConfig[creator].background) {{
+                radioExisting.style.display = 'flex';
+            }} else {{
+                radioExisting.style.display = 'none';
+                // Force upload option
+                document.querySelector('input[name="bg-choice"][value="upload"]').checked = true;
+                onBgChoiceChange();
+            }}
+        }}
+
+        function onBgChoiceChange() {{
+            const choice = document.querySelector('input[name="bg-choice"]:checked').value;
+            const fileWrapper = document.getElementById('file-wrapper');
+
+            document.querySelectorAll('.radio-option').forEach(el => el.classList.remove('selected'));
+            document.querySelector('input[name="bg-choice"]:checked').parentElement.classList.add('selected');
+
+            if (choice === 'upload') {{
+                fileWrapper.classList.add('visible');
+            }} else {{
+                fileWrapper.classList.remove('visible');
+            }}
+        }}
+
+        function onFileSelect(event) {{
+            const file = event.target.files[0];
+            if (file) {{
+                selectedFile = file;
+                const reader = new FileReader();
+                reader.onload = function(e) {{
+                    const preview = document.getElementById('preview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    document.getElementById('file-text').textContent = file.name;
+                    document.getElementById('file-label').classList.add('has-file');
+                }};
+                reader.readAsDataURL(file);
+            }}
+        }}
+
         async function deployNetlify() {{
             const creator = document.getElementById('creator-select').value;
             const handle = document.getElementById('tiktok-handle').value.trim().toLowerCase().replace('@', '');
-            const backgroundUrl = document.getElementById('background-url').value.trim();
+            const bgChoice = document.querySelector('input[name="bg-choice"]:checked').value;
             const statusEl = document.getElementById('status-existing');
 
-            if (!creator || !handle || !backgroundUrl) {{
+            if (!creator || !handle) {{
                 statusEl.className = 'status error';
-                statusEl.innerHTML = 'Bitte Creator, TikTok Handle und Background URL eingeben';
+                statusEl.innerHTML = 'Bitte Creator und TikTok Handle eingeben';
                 return;
+            }}
+
+            let backgroundData = null;
+            if (bgChoice === 'existing') {{
+                backgroundData = {{ type: 'url', url: creatorsConfig[creator].background }};
+            }} else {{
+                if (!selectedFile) {{
+                    statusEl.className = 'status error';
+                    statusEl.innerHTML = 'Bitte ein Bild hochladen';
+                    return;
+                }}
+                // Convert file to base64
+                const base64 = await new Promise((resolve) => {{
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result.split(',')[1]);
+                    reader.readAsDataURL(selectedFile);
+                }});
+                backgroundData = {{ type: 'upload', data: base64, filename: selectedFile.name }};
             }}
 
             statusEl.className = 'status loading';
@@ -396,7 +517,7 @@ def index():
                 const resp = await fetch('/api/deploy-netlify', {{
                     method: 'POST',
                     headers: {{ 'Content-Type': 'application/json' }},
-                    body: JSON.stringify({{ creator, handle, background_url: backgroundUrl }})
+                    body: JSON.stringify({{ creator, handle, background: backgroundData }})
                 }});
                 const data = await resp.json();
 
@@ -478,10 +599,10 @@ def api_deploy_netlify():
         data = request.get_json()
         creator = data.get('creator', '').lower()
         handle = data.get('handle', '').lower().replace('@', '')
-        background_url = data.get('background_url', '')
+        background = data.get('background', {})
 
-        if not creator or not handle or not background_url:
-            return jsonify({'success': False, 'error': 'Creator, handle and background_url required'})
+        if not creator or not handle or not background:
+            return jsonify({'success': False, 'error': 'Creator, handle and background required'})
 
         if creator not in CREATORS_CONFIG:
             return jsonify({'success': False, 'error': f'Unknown creator: {creator}'})
@@ -494,11 +615,25 @@ def api_deploy_netlify():
         worker_name = creator_config.get('worker', f"{creator}2")
         worker_url = f"https://{worker_name}.signaturenorthwest.workers.dev"
 
-        html_content = generate_netlify_html(worker_url, handle, background_url)
+        # Handle background image
+        bg_type = background.get('type')
+        image_data = None
+
+        if bg_type == 'url':
+            # Use external URL
+            background_url = background.get('url', '')
+            html_content = generate_netlify_html(worker_url, handle, background_url)
+        elif bg_type == 'upload':
+            # Use uploaded image - will be deployed alongside HTML
+            background_url = 'background.jpg'
+            html_content = generate_netlify_html(worker_url, handle, background_url)
+            image_data = base64.b64decode(background.get('data', ''))
+        else:
+            return jsonify({'success': False, 'error': 'Invalid background type'})
 
         site_name = f"tt-{handle}"
 
-        # Step 1: Create site
+        # Step 1: Create site (or get existing)
         create_resp = http_requests.post(
             "https://api.netlify.com/api/v1/sites",
             headers={
@@ -521,8 +656,13 @@ def api_deploy_netlify():
         else:
             site_id = create_resp.json()['id']
 
-        # Step 2: Deploy HTML content
-        file_hash = hashlib.sha1(html_content.encode()).hexdigest()
+        # Step 2: Create deploy with file manifest
+        html_hash = hashlib.sha1(html_content.encode()).hexdigest()
+        files_manifest = {"/index.html": html_hash}
+
+        if image_data:
+            image_hash = hashlib.sha1(image_data).hexdigest()
+            files_manifest["/background.jpg"] = image_hash
 
         deploy_resp = http_requests.post(
             f"https://api.netlify.com/api/v1/sites/{site_id}/deploys",
@@ -530,7 +670,7 @@ def api_deploy_netlify():
                 "Authorization": f"Bearer {NETLIFY_API_TOKEN}",
                 "Content-Type": "application/json"
             },
-            json={"files": {"/index.html": file_hash}}
+            json={"files": files_manifest}
         )
 
         if deploy_resp.status_code not in [200, 201]:
@@ -538,7 +678,7 @@ def api_deploy_netlify():
 
         deploy_id = deploy_resp.json()['id']
 
-        # Step 3: Upload the file
+        # Step 3: Upload HTML file
         upload_resp = http_requests.put(
             f"https://api.netlify.com/api/v1/deploys/{deploy_id}/files/index.html",
             headers={
@@ -549,7 +689,21 @@ def api_deploy_netlify():
         )
 
         if upload_resp.status_code not in [200, 201]:
-            return jsonify({'success': False, 'error': f'Failed to upload file: {upload_resp.text}'})
+            return jsonify({'success': False, 'error': f'Failed to upload HTML: {upload_resp.text}'})
+
+        # Step 4: Upload background image if provided
+        if image_data:
+            img_upload_resp = http_requests.put(
+                f"https://api.netlify.com/api/v1/deploys/{deploy_id}/files/background.jpg",
+                headers={
+                    "Authorization": f"Bearer {NETLIFY_API_TOKEN}",
+                    "Content-Type": "application/octet-stream"
+                },
+                data=image_data
+            )
+
+            if img_upload_resp.status_code not in [200, 201]:
+                return jsonify({'success': False, 'error': f'Failed to upload image: {img_upload_resp.text}'})
 
         netlify_url = f"https://{site_name}.netlify.app"
 
