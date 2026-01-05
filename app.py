@@ -142,6 +142,7 @@ def generate_netlify_html(worker_url, tiktok_handle, background_url="background.
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <title>Redirect</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔗</text></svg>"/>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;800&display=swap" rel="stylesheet"/>
 <style>
   :root{{--fg:#fff;--muted:rgba(255,255,255,.95);--label-bg: rgba(20,20,24,0.62);--label-border: rgba(255,255,255,0.28);--gif-w: clamp(220px, 60vw, 280px);--gif-center: 28%;--num-accent: #00ff66;}}
