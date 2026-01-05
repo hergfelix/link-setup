@@ -20,7 +20,7 @@ SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 
 # Active creators with their OF URLs
 CREATORS_CONFIG = {
-    "miriam": {"of_us": "https://onlyfans.com/milosmiriam", "of_de": "https://onlyfans.com/miriamxde", "has_dach": True},
+    "miriam": {"of_us": "https://onlyfans.com/milosmiriam", "of_de": "https://onlyfans.com/miriamxde", "has_dach": True, "worker": "miri2"},
     "aurelia": {"of_us": "https://onlyfans.com/aurelialuv", "of_de": "https://onlyfans.com/aureliaxde", "has_dach": True},
     "naomi": {"of_us": "https://onlyfans.com/naomidoee", "of_de": None, "has_dach": False},
     "mara": {"of_us": "https://onlyfans.com/maraxluv", "of_de": None, "has_dach": False},
@@ -132,177 +132,51 @@ export default {{
 }};'''
 
 
-def generate_netlify_html(worker_url, tiktok_handle, creator_name):
-    """Generate Netlify landing page HTML - only redirects on mobile + real browser"""
+def generate_netlify_html(worker_url, tiktok_handle, background_url, gif_url="https://s6.gifyu.com/images/bz27i.gif"):
+    """Generate Netlify landing page HTML - Miriam-style design with floating labels"""
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Open in Browser</title>
-    <style>
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #0f0f1a 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            padding: 20px;
-        }}
-        .container {{
-            text-align: center;
-            max-width: 360px;
-            width: 100%;
-        }}
-        .gif-card {{
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(0, 255, 136, 0.2);
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 24px;
-            box-shadow: 0 0 40px rgba(0, 255, 136, 0.1);
-        }}
-        .gif-container {{
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 16px;
-        }}
-        .gif-container img {{
-            width: 100%;
-            height: auto;
-            display: block;
-        }}
-        .instructions {{
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 24px;
-        }}
-        .step {{
-            display: flex;
-            align-items: center;
-            text-align: left;
-            margin-bottom: 16px;
-        }}
-        .step:last-child {{ margin-bottom: 0; }}
-        .step-number {{
-            width: 28px;
-            height: 28px;
-            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 14px;
-            color: #0f0f1a;
-            margin-right: 14px;
-            flex-shrink: 0;
-            box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
-        }}
-        .step-text {{
-            font-size: 15px;
-            color: rgba(255, 255, 255, 0.9);
-            line-height: 1.4;
-        }}
-        .step-text strong {{
-            color: #00ff88;
-        }}
-        .cta-button {{
-            display: block;
-            width: 100%;
-            padding: 18px 32px;
-            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
-            color: #0f0f1a;
-            text-decoration: none;
-            border-radius: 14px;
-            font-weight: 700;
-            font-size: 17px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
-        }}
-        .cta-button:hover {{
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(0, 255, 136, 0.5);
-        }}
-        .cta-button:active {{
-            transform: translateY(0);
-        }}
-        .footer-text {{
-            margin-top: 20px;
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.4);
-        }}
-    </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Redirect</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;800&display=swap" rel="stylesheet"/>
+<style>
+  :root{{--fg:#fff;--muted:rgba(255,255,255,.95);--label-bg: rgba(20,20,24,0.62);--label-border: rgba(255,255,255,0.28);--gif-w: clamp(220px, 60vw, 280px);--gif-center: 28%;--num-accent: #00ff66;}}
+  *{{ box-sizing:border-box; }}
+  html, body{{ height:100vh; overflow:hidden; }}
+  body{{margin:0;background: url('{background_url}') no-repeat center center / cover fixed;color: var(--fg);font-family: Poppins, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;}}
+  .gif-card{{position: fixed;left: 50%;top: var(--gif-center);transform: translate(-50%, -50%);width: var(--gif-w);height: auto;border-radius: 16px;box-shadow: 0 8px 24px rgba(0,0,0,.45);z-index: 3;background: rgba(0,0,0,.15);-webkit-backdrop-filter: blur(6px);backdrop-filter: blur(6px);border: 1px solid rgba(255,255,255,.18);padding: 10px;}}
+  .gif-card img, .gif-card video{{width:100%; height:auto; display:block;border-radius:12px; background:#111;}}
+  .corner-label, .below{{position: fixed;display: inline-flex;align-items: center;gap: 8px;padding: 10px 14px;border-radius: 999px;background: var(--label-bg);border: 1px solid var(--label-border);-webkit-backdrop-filter: blur(8px);backdrop-filter: blur(8px);box-shadow: 0 6px 22px rgba(0,0,0,.32);color: rgba(255,255,255,0.96);font-weight: 700;font-size: clamp(14px, 2.1vw, 17px);z-index: 5;}}
+  .corner-label .num, .below .num{{color: var(--num-accent);text-shadow: 0 0 8px var(--num-accent), 0 0 16px rgba(0,255,102,.5);font-weight: 800;}}
+  .corner-label{{top: calc(14px + env(safe-area-inset-top));right: 12px;}}
+  .below{{left: 50%;transform: translateX(-50%);top: calc(var(--gif-center) + (var(--gif-w) / 2) + 16px);width: var(--gif-w);justify-content: center;}}
+  .corner-glow{{position:fixed; top:0; right:0; width:280px; height:280px; z-index:2; pointer-events:none;background: radial-gradient(circle at 85% 15%, rgba(0,255,102,.8), rgba(0,255,102,0) 65%);animation: glowPulse 1.4s ease-in-out infinite;filter: blur(12px) saturate(140%);}}
+  @keyframes glowPulse{{0%,100%{{ opacity:.7; transform:scale(1); }}50%{{ opacity:1; transform:scale(1.15); }}}}
+</style>
+<script>
+  function isLikelyAppBrowser(ua) {{const keywords = ["instagram","fbav","fban","facebook","tiktok","musically","inapp","wv","webview","line","snapchat","pinterest","linkedin"];return keywords.some(kw => ua.toLowerCase().includes(kw));}}
+  function isLikelyBot(ua) {{const botKeywords = ["bot","crawl","preview","spider","dalvik","discord","telegram","curl","wget","python","slack","embed","facebookexternalhit"];return botKeywords.some(kw => ua.toLowerCase().includes(kw));}}
+  function checkBrowser() {{
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    const isApp = isLikelyAppBrowser(ua);
+    const isBot = isLikelyBot(ua);
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
+    const isBrowserLike = /chrome|safari|firefox|samsungbrowser|edg/i.test(ua);
+    const isRealBrowser = isMobile && isBrowserLike && !isApp && !isBot;
+    if (isRealBrowser) {{
+      window.location.href = '{worker_url}?acc={tiktok_handle}';
+    }}
+  }}
+  window.onload = checkBrowser;
+</script>
 </head>
 <body>
-    <div class="container">
-        <div class="gif-card">
-            <div class="gif-container">
-                <img src="https://i.imgur.com/qJyqv6V.gif" alt="How to open in browser">
-            </div>
-        </div>
-
-        <div class="instructions">
-            <div class="step">
-                <div class="step-number">1</div>
-                <div class="step-text">Tap the <strong>three dots</strong> (...) in the top right</div>
-            </div>
-            <div class="step">
-                <div class="step-number">2</div>
-                <div class="step-text">Select <strong>"Open in Browser"</strong></div>
-            </div>
-            <div class="step">
-                <div class="step-number">3</div>
-                <div class="step-text">Then tap the button below</div>
-            </div>
-        </div>
-
-        <a href="{worker_url}?acc={tiktok_handle}" class="cta-button" id="ctaButton">
-            Continue
-        </a>
-
-        <p class="footer-text">Works best in Safari or Chrome</p>
-    </div>
-
-    <script>
-        function isLikelyAppBrowser(ua) {{
-            const keywords = [
-                "instagram", "fbav", "fban", "facebook", "tiktok", "musically",
-                "inapp", "wv", "webview", "line", "snapchat", "pinterest", "linkedin"
-            ];
-            return keywords.some(kw => ua.toLowerCase().includes(kw));
-        }}
-
-        function isLikelyBot(ua) {{
-            const botKeywords = [
-                "bot", "crawl", "preview", "spider", "dalvik", "discord", "telegram",
-                "curl", "wget", "python", "slack", "embed", "facebookexternalhit"
-            ];
-            return botKeywords.some(kw => ua.toLowerCase().includes(kw));
-        }}
-
-        function checkBrowser() {{
-            const ua = navigator.userAgent || navigator.vendor || window.opera;
-            const isApp = isLikelyAppBrowser(ua);
-            const isBot = isLikelyBot(ua);
-            const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
-            const isBrowserLike = /chrome|safari|firefox|samsungbrowser|edg/i.test(ua);
-
-            // Only redirect on: mobile + real browser (not in-app, not bot)
-            const isRealBrowser = isMobile && isBrowserLike && !isApp && !isBot;
-
-            if (isRealBrowser) {{
-                window.location.href = "{worker_url}?acc={tiktok_handle}";
-            }}
-        }}
-
-        window.onload = checkBrowser;
-    </script>
+  <div class="gif-card"><img src="{gif_url}" alt="How to open in browser"/></div>
+  <div aria-hidden="true" class="corner-glow"></div>
+  <div class="corner-label"><span class="num">1.</span> Tap the three dots</div>
+  <div class="below"><span class="num">2.</span> Tap "Open in browser"</div>
 </body>
 </html>'''
 
@@ -448,6 +322,11 @@ def index():
                     <input type="text" id="tiktok-handle" placeholder="z.B. glowingmiriam">
                 </div>
 
+                <div class="form-group">
+                    <label>Background Image URL</label>
+                    <input type="text" id="background-url" placeholder="https://i.imgur.com/...">
+                </div>
+
                 <button class="btn btn-primary" onclick="deployNetlify()">
                     Deploy Netlify Page
                 </button>
@@ -501,11 +380,12 @@ def index():
         async function deployNetlify() {{
             const creator = document.getElementById('creator-select').value;
             const handle = document.getElementById('tiktok-handle').value.trim().toLowerCase().replace('@', '');
+            const backgroundUrl = document.getElementById('background-url').value.trim();
             const statusEl = document.getElementById('status-existing');
 
-            if (!creator || !handle) {{
+            if (!creator || !handle || !backgroundUrl) {{
                 statusEl.className = 'status error';
-                statusEl.innerHTML = 'Bitte Creator und TikTok Handle eingeben';
+                statusEl.innerHTML = 'Bitte Creator, TikTok Handle und Background URL eingeben';
                 return;
             }}
 
@@ -516,7 +396,7 @@ def index():
                 const resp = await fetch('/api/deploy-netlify', {{
                     method: 'POST',
                     headers: {{ 'Content-Type': 'application/json' }},
-                    body: JSON.stringify({{ creator, handle }})
+                    body: JSON.stringify({{ creator, handle, background_url: backgroundUrl }})
                 }});
                 const data = await resp.json();
 
@@ -598,9 +478,10 @@ def api_deploy_netlify():
         data = request.get_json()
         creator = data.get('creator', '').lower()
         handle = data.get('handle', '').lower().replace('@', '')
+        background_url = data.get('background_url', '')
 
-        if not creator or not handle:
-            return jsonify({'success': False, 'error': 'Creator and handle required'})
+        if not creator or not handle or not background_url:
+            return jsonify({'success': False, 'error': 'Creator, handle and background_url required'})
 
         if creator not in CREATORS_CONFIG:
             return jsonify({'success': False, 'error': f'Unknown creator: {creator}'})
@@ -608,8 +489,12 @@ def api_deploy_netlify():
         if not NETLIFY_API_TOKEN:
             return jsonify({'success': False, 'error': 'NETLIFY_API_TOKEN not configured'})
 
-        worker_url = f"https://{creator}2.signaturenorthwest.workers.dev"
-        html_content = generate_netlify_html(worker_url, handle, creator)
+        # Get worker name from config or use default pattern
+        creator_config = CREATORS_CONFIG[creator]
+        worker_name = creator_config.get('worker', f"{creator}2")
+        worker_url = f"https://{worker_name}.signaturenorthwest.workers.dev"
+
+        html_content = generate_netlify_html(worker_url, handle, background_url)
 
         site_name = f"tt-{handle}"
 
@@ -671,7 +556,7 @@ def api_deploy_netlify():
         return jsonify({
             'success': True,
             'netlify_url': netlify_url,
-            'worker_url': f"{worker_url}?acc={handle}&model={creator}",
+            'worker_url': f"{worker_url}?acc={handle}",
             'site_id': site_id
         })
 
