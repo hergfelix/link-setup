@@ -115,12 +115,13 @@ export default {{
 
     const target = pickTarget(country);
     const device = parseDevice(ua);
+    const isDach = DACH_COUNTRIES.has(country);
 
     const payload = {{
       acc, country,
       timestamp: new Date().toISOString(),
       user_agent: ua.toLowerCase().slice(0, 500),
-      model: MODEL_NAME,
+      model: isDach ? MODEL_NAME + "_de" : MODEL_NAME,
       of_account: target.of_account,
       tiktok_account: acc,
       redirected_to: target.redirected_to,
