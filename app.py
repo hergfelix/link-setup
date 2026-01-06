@@ -22,7 +22,7 @@ SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 # Active creators with their OF URLs and background images
 # background: URL to default background image (None = needs upload)
 CREATORS_CONFIG = {
-    "miriam": {"of_us": "https://onlyfans.com/milosmiriam", "of_de": "https://onlyfans.com/miriamxde", "has_dach": True, "worker": "miri2", "background": "https://i.imgur.com/miriam_bg.jpg"},
+    "miriam": {"of_us": "https://onlyfans.com/milosmiriam", "of_de": "https://onlyfans.com/miriamxde", "has_dach": True, "worker": "miri2", "background": "https://tt-glowingmiriam.netlify.app/background.jpg"},
     "aurelia": {"of_us": "https://onlyfans.com/aurelialuv", "of_de": "https://onlyfans.com/aureliaxde", "has_dach": True, "background": None},
     "naomi": {"of_us": "https://onlyfans.com/naomidoee", "of_de": None, "has_dach": False, "background": None},
     "mara": {"of_us": "https://onlyfans.com/maraxluv", "of_de": None, "has_dach": False, "background": None},
@@ -30,16 +30,20 @@ CREATORS_CONFIG = {
     "selena": {"of_us": "https://onlyfans.com/selenawrld", "of_de": None, "has_dach": False, "background": None},
     "sofia": {"of_us": "https://onlyfans.com/sofiasynn", "of_de": None, "has_dach": False, "background": None},
     "nalani": {"of_us": "https://onlyfans.com/nalaniluv", "of_de": None, "has_dach": False, "background": None},
-    "suki": {"of_us": "https://onlyfans.com/sukixdarling", "of_de": None, "has_dach": False, "background": None},
+    "suki": {"of_us": "https://onlyfans.com/sukiamari/c2", "of_de": None, "has_dach": False, "worker": "suki2", "background": "https://tt-sukiiyami.netlify.app/background.jpg"},
     "mira": {"of_us": "https://onlyfans.com/miraswrld", "of_de": None, "has_dach": False, "background": None},
 }
 
 
 def generate_worker_code(model_name, of_url_us, of_url_de):
-    """Generate Cloudflare Worker code for a creator"""
+    """Generate Cloudflare Worker code for a creator - with hardcoded credentials (env bindings don't work)"""
     return f'''const MODEL_NAME = "{model_name}";
 const REDIRECT_URL_US = "{of_url_us}";
-const REDIRECT_URL_DE = "{of_url_de}";
+const REDIRECT_URL_DE = "{of_url_de or of_url_us}";
+
+// Hardcoded credentials (env bindings don't work reliably)
+const SUPABASE_URL = "https://utzkvosladgdsbpujozu.supabase.co";
+const SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0emt2b3NsYWRnZHNicHVqb3p1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjI5MzQ2MiwiZXhwIjoyMDc3ODY5NDYyfQ.eJ0PW_g4upf2nZxMoT3BLmdB_rOwhVZOJp-7HUVimFM";
 
 const DACH_COUNTRIES = new Set(["DE", "AT", "CH"]);
 
@@ -96,12 +100,9 @@ async function logClick(supabaseUrl, serviceKey, payload) {{
 }}
 
 export default {{
-  async fetch(request, env) {{
-    const supabaseUrl = env.SUPABASE_URL;
-    const serviceKey = env.SUPABASE_SERVICE_KEY;
-    if (!supabaseUrl || !serviceKey) {{
-      return new Response("Config error", {{ status: 500 }});
-    }}
+  async fetch(request) {{
+    const supabaseUrl = SUPABASE_URL;
+    const serviceKey = SUPABASE_SERVICE_KEY;
 
     const url = new URL(request.url);
     const ua = request.headers.get("user-agent") || "";
@@ -528,13 +529,15 @@ def index():
                     statusEl.innerHTML = `
                         <strong>Erfolgreich!</strong><br><br>
                         <div class="result-link">
-                            Netlify URL: <a href="${{data.netlify_url}}" target="_blank">${{data.netlify_url}}</a>
+                            Netlify: <a href="${{data.netlify_url}}" target="_blank">${{data.netlify_url}}</a>
                         </div>
                         <div class="result-link">
-                            Worker URL: <a href="${{data.worker_url}}" target="_blank">${{data.worker_url}}</a>
+                            Linktree: <a href="${{data.linktree_url}}" target="_blank">${{data.linktree_url}}</a>
                         </div>
                         <br>
-                        <strong>Nachster Schritt:</strong> Linktree Button mit Netlify URL erstellen
+                        <strong>📋 VA Nachricht:</strong>
+                        <div class="result-link" style="white-space: pre-wrap; cursor: pointer;" onclick="navigator.clipboard.writeText(this.innerText); this.style.background='rgba(0,255,102,0.2)'; setTimeout(()=>this.style.background='', 1000);" title="Klicken zum Kopieren">${{data.va_message}}</div>
+                        <small style="color: rgba(255,255,255,0.5);">Klicken zum Kopieren</small>
                     `;
                 }} else {{
                     statusEl.className = 'status error';
@@ -708,12 +711,23 @@ def api_deploy_netlify():
                 return jsonify({'success': False, 'error': f'Failed to upload image: {img_upload_resp.text}'})
 
         netlify_url = f"https://{site_name}.netlify.app"
+        linktree_url = f"https://linktr.ee/{handle}"
+
+        # Generate VA message
+        va_message = f"""Hey,
+
+I'm currently creating Links for every single account. Please add this to your account:
+
+{handle}:
+{linktree_url}"""
 
         return jsonify({
             'success': True,
             'netlify_url': netlify_url,
+            'linktree_url': linktree_url,
             'worker_url': f"{worker_url}?acc={handle}",
-            'site_id': site_id
+            'site_id': site_id,
+            'va_message': va_message
         })
 
     except Exception as e:
