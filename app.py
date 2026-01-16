@@ -5,12 +5,14 @@ Deploys Netlify landing pages and Cloudflare Workers for click tracking
 """
 
 from flask import Flask, Response, request, jsonify
+from flask_cors import CORS
 import requests as http_requests
 import hashlib
 import base64
 import os
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Configuration
 CLOUDFLARE_API_TOKEN = os.environ.get("CLOUDFLARE_API_TOKEN", "")
@@ -807,6 +809,25 @@ def api_deploy_worker():
             "of_de": of_url_de if of_url_de != of_url_us else None,
             "has_dach": of_url_de != of_url_us
         }
+
+        # Create creator in Supabase database
+        if SUPABASE_SERVICE_KEY:
+            http_requests.post(
+                f"{SUPABASE_URL}/rest/v1/of_creators",
+                headers={
+                    "apikey": SUPABASE_SERVICE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal"
+                },
+                json={
+                    "name": name.capitalize(),
+                    "account_prefix": name,
+                    "persona": "girlfriend",
+                    "is_active": True,
+                    "active_accounts_count": 0
+                }
+            )
 
         return jsonify({
             'success': True,
