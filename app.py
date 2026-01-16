@@ -613,14 +613,11 @@ def api_deploy_netlify():
         if not creator or not handle or not background:
             return jsonify({'success': False, 'error': 'Creator, handle and background required'})
 
-        if creator not in CREATORS_CONFIG:
-            return jsonify({'success': False, 'error': f'Unknown creator: {creator}'})
-
         if not NETLIFY_API_TOKEN:
             return jsonify({'success': False, 'error': 'NETLIFY_API_TOKEN not configured'})
 
-        # Get worker name from config or use default pattern
-        creator_config = CREATORS_CONFIG[creator]
+        # Get worker name - check config for custom names (miri2, suki2), otherwise use pattern {creator}2
+        creator_config = CREATORS_CONFIG.get(creator, {})
         worker_name = creator_config.get('worker', f"{creator}2")
         worker_url = f"https://{worker_name}.signaturenorthwest.workers.dev"
 
