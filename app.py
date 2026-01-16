@@ -753,14 +753,22 @@ def api_deploy_worker():
         worker_name = f"{name}2"
         worker_code = generate_worker_code(name, of_url_us, of_url_de)
 
-        # Deploy worker
+        # Deploy worker using multipart form-data for ES modules
+        import json as json_lib
+        metadata = {
+            "main_module": "worker.js",
+            "compatibility_date": "2024-01-01"
+        }
+
         deploy_resp = http_requests.put(
             f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/workers/scripts/{worker_name}",
             headers={
                 "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}",
-                "Content-Type": "application/javascript"
             },
-            data=worker_code
+            files={
+                "worker.js": ("worker.js", worker_code, "application/javascript+module"),
+                "metadata": ("metadata.json", json_lib.dumps(metadata), "application/json")
+            }
         )
 
         if not deploy_resp.json().get('success'):
