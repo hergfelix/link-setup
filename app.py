@@ -34,6 +34,7 @@ CREATORS_CONFIG = {
     "nalani": {"of_us": "https://onlyfans.com/nalaniluv", "of_de": None, "has_dach": False, "background": None},
     "suki": {"of_us": "https://onlyfans.com/sukiamari/c2", "of_de": None, "has_dach": False, "worker": "suki2", "background": "https://tt-sukiiyami.netlify.app/background.jpg"},
     "mira": {"of_us": "https://onlyfans.com/miraswrld", "of_de": None, "has_dach": False, "background": None},
+    "camila": {"of_us": "https://onlyfans.com/camilajune", "of_de": None, "has_dach": False, "background": None},
 }
 
 
