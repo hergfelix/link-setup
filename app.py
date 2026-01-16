@@ -52,7 +52,7 @@ const DACH_COUNTRIES = new Set(["DE", "AT", "CH"]);
 const BLOCKED_UA_PATTERNS = [
   "bot", "crawl", "spider", "preview", "scraper", "fetch",
   "googlebot", "bingbot", "slurp", "duckduckbot", "yandex", "baidu",
-  "semrush", "ahrefs", "moz", "screaming", "majestic",
+  "semrush", "ahrefs", "screaming", "majestic", "mj12bot",
   "facebookexternalhit", "twitterbot", "linkedinbot", "pinterest",
   "snapchat", "whatsapp", "telegram", "discord", "tiktok",
   "bytespider", "bytedance", "python", "curl", "wget", "headless",
