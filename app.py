@@ -133,7 +133,7 @@ export default {{
       os: device.os,
     }};
 
-    logClick(supabaseUrl, serviceKey, payload);
+    await logClick(supabaseUrl, serviceKey, payload);
     return Response.redirect(target.redirected_to, 302);
   }},
 }};'''
