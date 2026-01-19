@@ -10,6 +10,8 @@ import requests as http_requests
 import hashlib
 import base64
 import os
+from io import BytesIO
+from PIL import Image
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -630,10 +632,31 @@ def api_deploy_netlify():
             background_url = background.get('url', '')
             html_content = generate_netlify_html(worker_url, handle, background_url)
         elif bg_type == 'upload':
-            # Use uploaded image - will be deployed alongside HTML
+            # Use uploaded image - compress and resize before deploying
             background_url = 'background.jpg'
             html_content = generate_netlify_html(worker_url, handle, background_url)
-            image_data = base64.b64decode(background.get('data', ''))
+
+            # Decode base64 image data
+            raw_image_data = base64.b64decode(background.get('data', ''))
+
+            # Compress image with Pillow
+            img = Image.open(BytesIO(raw_image_data))
+
+            # Convert to RGB if necessary (handles PNG with transparency, etc.)
+            if img.mode in ('RGBA', 'LA', 'P'):
+                img = img.convert('RGB')
+
+            # Resize if width exceeds 1920px (maintain aspect ratio)
+            max_width = 1920
+            if img.width > max_width:
+                ratio = max_width / img.width
+                new_height = int(img.height * ratio)
+                img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
+
+            # Save as JPEG with 85% quality
+            output_buffer = BytesIO()
+            img.save(output_buffer, format='JPEG', quality=85, optimize=True)
+            image_data = output_buffer.getvalue()
         else:
             return jsonify({'success': False, 'error': 'Invalid background type'})
 
