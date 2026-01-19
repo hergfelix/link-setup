@@ -686,12 +686,10 @@ def api_deploy_netlify():
         deploy_id = deploy_data['id']
         required_files = deploy_data.get('required', [])
 
-        # Step 3: Upload files that are actually required (not already in cache)
-        # Netlify returns 'required' array with SHA1 hashes of files that need uploading
-        files_to_upload = []
-        if html_hash in required_files:
-            files_to_upload.append(('/index.html', html_content.encode()))
-        if image_data and image_hash in required_files:
+        # Step 3: Upload files
+        # Always upload HTML and image - Netlify's 'required' check was causing issues
+        files_to_upload = [('/index.html', html_content.encode())]
+        if image_data:
             files_to_upload.append(('/background.jpg', image_data))
 
         for file_path, file_data in files_to_upload:
