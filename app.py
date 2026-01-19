@@ -682,34 +682,30 @@ def api_deploy_netlify():
         if deploy_resp.status_code not in [200, 201]:
             return jsonify({'success': False, 'error': f'Failed to create deploy: {deploy_resp.text}'})
 
-        deploy_id = deploy_resp.json()['id']
+        deploy_data = deploy_resp.json()
+        deploy_id = deploy_data['id']
+        required_files = deploy_data.get('required', [])
 
-        # Step 3: Upload HTML file
-        upload_resp = http_requests.put(
-            f"https://api.netlify.com/api/v1/deploys/{deploy_id}/files/index.html",
-            headers={
-                "Authorization": f"Bearer {NETLIFY_API_TOKEN}",
-                "Content-Type": "application/octet-stream"
-            },
-            data=html_content.encode()
-        )
+        # Step 3: Upload files that are actually required (not already in cache)
+        # Netlify returns 'required' array with SHA1 hashes of files that need uploading
+        files_to_upload = []
+        if html_hash in required_files:
+            files_to_upload.append(('/index.html', html_content.encode()))
+        if image_data and image_hash in required_files:
+            files_to_upload.append(('/background.jpg', image_data))
 
-        if upload_resp.status_code not in [200, 201]:
-            return jsonify({'success': False, 'error': f'Failed to upload HTML: {upload_resp.text}'})
-
-        # Step 4: Upload background image if provided
-        if image_data:
-            img_upload_resp = http_requests.put(
-                f"https://api.netlify.com/api/v1/deploys/{deploy_id}/files/background.jpg",
+        for file_path, file_data in files_to_upload:
+            upload_resp = http_requests.put(
+                f"https://api.netlify.com/api/v1/deploys/{deploy_id}/files{file_path}",
                 headers={
                     "Authorization": f"Bearer {NETLIFY_API_TOKEN}",
                     "Content-Type": "application/octet-stream"
                 },
-                data=image_data
+                data=file_data
             )
 
-            if img_upload_resp.status_code not in [200, 201]:
-                return jsonify({'success': False, 'error': f'Failed to upload image: {img_upload_resp.text}'})
+            if upload_resp.status_code not in [200, 201]:
+                return jsonify({'success': False, 'error': f'Failed to upload {file_path}: {upload_resp.text}'})
 
         netlify_url = f"https://{site_name}.netlify.app"
         linktree_url = f"https://linktr.ee/{handle}"
