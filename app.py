@@ -704,7 +704,11 @@ def api_deploy_netlify():
                 data=file_data
             )
 
-            if upload_resp.status_code not in [200, 201]:
+            # Handle upload response - 422 "no records matched" means file is already in cache
+            if upload_resp.status_code == 422:
+                # File already exists in Netlify cache - this is OK, continue
+                pass
+            elif upload_resp.status_code not in [200, 201]:
                 return jsonify({'success': False, 'error': f'Failed to upload {file_path}: {upload_resp.text}'})
 
         netlify_url = f"https://{site_name}.netlify.app"
