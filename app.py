@@ -15,6 +15,7 @@ from PIL import Image
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max request size
 
 # Configuration
 CLOUDFLARE_API_TOKEN = os.environ.get("CLOUDFLARE_API_TOKEN", "")
