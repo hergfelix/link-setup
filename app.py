@@ -511,10 +511,17 @@ def index():
                     statusEl.innerHTML = 'Bitte ein Bild hochladen';
                     return;
                 }}
+                // Check file size (max 5MB)
+                if (selectedFile.size > 5 * 1024 * 1024) {{
+                    statusEl.className = 'status error';
+                    statusEl.innerHTML = `Bild zu gross (${{(selectedFile.size / 1024 / 1024).toFixed(1)}}MB). Max 5MB erlaubt.`;
+                    return;
+                }}
                 // Convert file to base64
-                const base64 = await new Promise((resolve) => {{
+                const base64 = await new Promise((resolve, reject) => {{
                     const reader = new FileReader();
                     reader.onload = () => resolve(reader.result.split(',')[1]);
+                    reader.onerror = () => reject(new Error('Fehler beim Lesen der Datei'));
                     reader.readAsDataURL(selectedFile);
                 }});
                 backgroundData = {{ type: 'upload', data: base64, filename: selectedFile.name }};
@@ -524,11 +531,20 @@ def index():
             statusEl.innerHTML = 'Deploying...';
 
             try {{
+                const payload = {{ creator, handle, background: backgroundData }};
+                console.log('Sending payload, size:', JSON.stringify(payload).length, 'bytes');
+
                 const resp = await fetch('/api/deploy-netlify', {{
                     method: 'POST',
                     headers: {{ 'Content-Type': 'application/json' }},
-                    body: JSON.stringify({{ creator, handle, background: backgroundData }})
+                    body: JSON.stringify(payload)
                 }});
+
+                if (!resp.ok) {{
+                    const errorText = await resp.text();
+                    throw new Error(`HTTP ${{resp.status}}: ${{errorText}}`);
+                }}
+
                 const data = await resp.json();
 
                 if (data.success) {{
