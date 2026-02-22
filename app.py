@@ -92,9 +92,26 @@ function pickTarget(country) {{
     : {{ of_account: MODEL_NAME + "_us", redirected_to: REDIRECT_URL_US }};
 }}
 
-async function logClick(supabaseUrl, serviceKey, payload) {{
-  const url = supabaseUrl.replace(/\\/$/, "") + "/rest/v1/link_clicks";
-  return fetch(url, {{
+async function sha256(str) {{
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+}}
+
+async function checkUniqueAndLog(supabaseUrl, serviceKey, payload) {{
+  // Check if fingerprint has been seen before
+  const checkUrl = supabaseUrl + "/rest/v1/link_clicks?fingerprint_hash=eq." + payload.fingerprint_hash + "&select=id&limit=1";
+  try {{
+    const res = await fetch(checkUrl, {{
+      headers: {{ apikey: serviceKey, Authorization: "Bearer " + serviceKey }}
+    }});
+    const existing = await res.json();
+    payload.is_unique = existing.length === 0;
+  }} catch (_) {{
+    payload.is_unique = false;
+  }}
+
+  // Insert click
+  await fetch(supabaseUrl + "/rest/v1/link_clicks", {{
     method: "POST",
     headers: {{
       "Content-Type": "application/json",
@@ -103,31 +120,39 @@ async function logClick(supabaseUrl, serviceKey, payload) {{
       Prefer: "return=minimal",
     }},
     body: JSON.stringify(payload),
-  }}).then((r) => r.arrayBuffer().catch(() => null)).catch(() => null);
+  }}).catch(() => null);
 }}
 
 export default {{
-  async fetch(request) {{
-    const supabaseUrl = SUPABASE_URL;
-    const serviceKey = SUPABASE_SERVICE_KEY;
-
+  async fetch(request, env, ctx) {{
     const url = new URL(request.url);
     const ua = request.headers.get("user-agent") || "";
-    const country = request.cf?.country || "US";
-    const acc = (url.searchParams.get("acc") || "unknown").slice(0, 100);
+    const cf = request.cf || {{}};
 
     if (isLikelyBot(ua)) {{
       return new Response("Nothing here", {{ status: 200 }});
     }}
 
+    const country = cf.country || "US";
+    const isDach = DACH_COUNTRIES.has(country);
+    const acc = (url.searchParams.get("acc") || "unknown").slice(0, 100);
     const target = pickTarget(country);
     const device = parseDevice(ua);
-    const isDach = DACH_COUNTRIES.has(country);
+
+    const ip = request.headers.get("CF-Connecting-IP") || "";
+    const acceptLang = request.headers.get("accept-language") || "";
+    const referer = request.headers.get("referer") || null;
+
+    const [fingerprintHash, ipHash] = await Promise.all([
+      sha256([ip, ua, acceptLang, String(cf.asn || "")].join("|")),
+      sha256(ip),
+    ]);
 
     const payload = {{
-      acc, country,
+      acc,
+      country,
       timestamp: new Date().toISOString(),
-      user_agent: ua.toLowerCase().slice(0, 500),
+      user_agent: ua.slice(0, 500),
       model: isDach ? MODEL_NAME + "_de" : MODEL_NAME,
       of_account: target.of_account,
       tiktok_account: acc,
@@ -135,9 +160,28 @@ export default {{
       device_type: device.device_type,
       browser: device.browser,
       os: device.os,
+      // Geo from Cloudflare (free, no external API needed)
+      city: cf.city || null,
+      region: cf.region || null,
+      postal_code: cf.postalCode || null,
+      latitude: cf.latitude || null,
+      longitude: cf.longitude || null,
+      timezone: cf.timezone || null,
+      asn: cf.asn || null,
+      isp: cf.asOrganization || null,
+      colo: cf.colo || null,
+      tls_version: cf.tlsVersion || null,
+      // Headers
+      referer,
+      accept_language: acceptLang || null,
+      // Fingerprint
+      ip_hash: ipHash,
+      fingerprint_hash: fingerprintHash,
+      // is_unique set inside checkUniqueAndLog
     }};
 
-    await logClick(supabaseUrl, serviceKey, payload);
+    // Redirect user immediately — logging happens in background
+    ctx.waitUntil(checkUniqueAndLog(SUPABASE_URL, SUPABASE_SERVICE_KEY, payload));
     return Response.redirect(target.redirected_to, 302);
   }},
 }};'''
@@ -874,6 +918,45 @@ def api_deploy_worker():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/redeploy-all-workers', methods=['POST'])
+def api_redeploy_all_workers():
+    """Redeploy all creator workers with the latest worker code"""
+    if not CLOUDFLARE_API_TOKEN:
+        return jsonify({'success': False, 'error': 'CLOUDFLARE_API_TOKEN not configured'})
+
+    import json as json_lib
+
+    results = []
+    for creator_name, config in CREATORS_CONFIG.items():
+        worker_name = config.get('worker') or f"{creator_name}2"
+        of_url_us = config.get('of_us', '')
+        of_url_de = config.get('of_de') or of_url_us
+
+        if not of_url_us:
+            results.append({'creator': creator_name, 'success': False, 'error': 'no of_url_us'})
+            continue
+
+        worker_code = generate_worker_code(creator_name, of_url_us, of_url_de)
+        metadata = {"main_module": "worker.js", "compatibility_date": "2024-01-01"}
+
+        try:
+            resp = http_requests.put(
+                f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/workers/scripts/{worker_name}",
+                headers={"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}"},
+                files={
+                    "worker.js": ("worker.js", worker_code, "application/javascript+module"),
+                    "metadata": ("metadata.json", json_lib.dumps(metadata), "application/json")
+                }
+            )
+            success = resp.json().get('success', False)
+            results.append({'creator': creator_name, 'worker': worker_name, 'success': success})
+        except Exception as e:
+            results.append({'creator': creator_name, 'worker': worker_name, 'success': False, 'error': str(e)})
+
+    all_ok = all(r['success'] for r in results)
+    return jsonify({'success': all_ok, 'results': results})
 
 
 @app.route('/health')
